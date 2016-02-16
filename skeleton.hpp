@@ -1,5 +1,5 @@
-#ifndef BONE_HPP
-#define BONE_HPP
+#ifndef SKELETON_HPP
+#define SKELETON_HPP
 
 #include <GL/glew.h>
 #include <glfw3.h>
@@ -19,26 +19,23 @@
 #include <common/texture.hpp>
 #include <common/controls.hpp>
 #include <common/objloader.hpp>
+#include <common/bone.hpp>
 
-class Bone
-{
+#define NUMBONES 4
+
+class Skeleton {
 public:
-	Bone *parent;
-	std::vector<Bone*> children;
-	//list<Bone*> children;
+	Bone root;
+	//int numbones;
+	Bone myBone[NUMBONES];
+	int numBones;
 
-	int boneID;
-	glm::mat4 boneModel;
-	glm::vec3 pos;
-	bool isRoot;
+	Skeleton();
+	Skeleton(int nBones);
+	~Skeleton();
 
-	Bone();
-	Bone(int ID, glm::vec3 T, glm::vec3 R, glm::vec3 S);
-	~Bone();
-
-	glm::mat4 getBoneModel();
-	void update(glm::vec3 translation, glm::vec3 rotation, glm::vec3 scaling);
-
+	void loadBone(Bone bone);
 };
+
 
 #endif

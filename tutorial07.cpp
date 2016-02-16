@@ -24,20 +24,28 @@ using namespace glm;
 #include <common/controls.hpp>
 #include <common/objloader.hpp>
 #include <common/bone.hpp>
-//#include <common/skeleton.hpp>
+#include <common/skeleton.hpp>
 
 
-#define NUMBONES 2
-//void draw(mat4 MVP, GLuint MatrixID, GLuint Texture, GLuint TextureID, GLuint vertexbuffer, GLuint uvbuffer, std::vector<glm::vec3> vertices);
+#define NUMBONES 4
 
 glm::mat4 ViewMatrix, ModelMatrix, ProjectionMatrix, TranslationMatrix, RotationMatrix, ScalingMatrix, MVP;
-
 GLuint MatrixID, Texture, TextureID, vertexbuffer, uvbuffer;
 std::vector<glm::vec3> vertices;
 
-void drawBone(Bone &bone, mat4 ProjectionMatrix, mat4 ViewMatrix);
+void drawBone(Bone bone, mat4 ProjectionMatrix, mat4 ViewMatrix);
+void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix);
+void checkKeys();
 
 Bone bone[NUMBONES];
+//Skeleton skeleton;
+
+//----- Camera Variables --------
+glm::vec3 view_angles;
+float ViewRotationAngle = 0.2f;
+quat ViewOrientation;
+glm::mat4 ViewRotationMatrix;
+bool camMoved = true;
 
 int main( void )
 {
@@ -81,7 +89,7 @@ int main( void )
     
     // Set the mouse at the center of the screen
     glfwPollEvents();
-    glfwSetCursorPos(window, 1024/2, 768/2);
+    //glfwSetCursorPos(window, 1024/2, 768/2);
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -107,13 +115,12 @@ int main( void )
 	// Load the texture
 	GLuint Texture = loadDDS("uvmap.DDS");
 	//GLuint Texture = loadDDS("SopCamel1.DDS");
-	//GLuint Texture = loadBMP_custom("SopCamel.bmp");
 
 	// Get a handle for our "myTextureSampler" uniform
 	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
 	// Read our .obj file
-	std::vector<glm::vec3> vertices;
+	//std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals; // Won't be used at the moment.
 	bool res = loadOBJ("cone_obj.obj", vertices, uvs, normals);
@@ -138,22 +145,34 @@ int main( void )
 	//------------------ Initialize Matrices ----------------
 	//--------------- not using controls.cpp ---------------------------
 	ProjectionMatrix = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-	ViewMatrix = glm::lookAt(vec3(0,0,10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	//ViewMatrix = glm::lookAt(vec3(0,0,10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	RotationMatrix = glm::mat4(1.0);
 	TranslationMatrix = translate(mat4(), vec3(0.0f, 5.0f,-30.0f));
 	ScalingMatrix = scale(mat4(), vec3(1.0f, 1.0f, 1.0f));
 	//ModelMatrix = TranslationMatrix * RotationMatrix * ScalingMatrix;
-
 	//MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
 
-	//------------------ Load Bones --------------------------
-	bone[0].setModel(vec3(0,0,-30), vec3(0,0,0), vec3(0,0,0));
-	bone[1].setModel(vec3(0, 5, -30), vec3(0, 0, 0), vec3(0, 0, 0));
-	
+	//------------------ Create Bones --------------------------
+	//bone[0].setModel(vec3(0,0,-30), vec3(0,0,0), vec3(0,0,0));
+	//bone[1].setModel(vec3(0, 5, -30), vec3(0, 0, 0), vec3(0, 0, 0));
+	float y = 0.0f;
+	for (int i = 0; i < NUMBONES; i++)
+	{
+		bone[i] = Bone(i, vec3(0, y, -30), vec3(0, 0, 0), vec3(0, 0, 0));
+		y += 5.0f;
+	}
+
+	//set root?
+	bone[0].isRoot = true;
 
 	//------------------ Load Skeleton ------------------------
+	Skeleton skeleton = Skeleton(NUMBONES);
 
+	for (int i = 0; i < NUMBONES; i++)
+	{
+		skeleton.loadBone(bone[i]);
+	}
 
 	do{
 
@@ -184,11 +203,11 @@ int main( void )
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 ModelMatrix = getModelMatrix();
 		*/
-		
-		
 		//TranslationMatrix = translate(mat4(), vec3(0.0f,10.0f,-30.0f));
 		//ModelMatrix = TranslationMatrix * RotationMatrix * ScalingMatrix;
 		//MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+
+
 
 		// Bind our texture in Texture Unit 0
 		glActiveTexture(GL_TEXTURE0);
@@ -199,41 +218,32 @@ int main( void )
 		// 1rst attribute buffer : vertices
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-			);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		// 2nd attribute buffer : UVs
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-			1,                                // attribute
-			2,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-			);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+
+		//------------- Update Camera --------------------
+		if (camMoved)
+		{
+			ViewMatrix = glm::lookAt(vec3(0, -2, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+			glm::quat view_rotation(radians(view_angles));
+			ViewOrientation = ViewOrientation * view_rotation;
+			ViewRotationMatrix = toMat4(ViewOrientation);
+			ViewMatrix = ViewMatrix * ViewRotationMatrix; // switch multiplication to switch to first person
+			camMoved = false;
+		}
+
+		//------------- Let's Draw! -----------------------
+		drawSkeleton(skeleton, ProjectionMatrix, ViewMatrix);
 		//drawBone(bone[0], ProjectionMatrix, ViewMatrix);
 		//drawBone(bone[1], ProjectionMatrix, ViewMatrix);
 
+		checkKeys();
 
-		ModelMatrix = bone[0].getBoneModel();
-		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-
-		ModelMatrix = bone[1].getBoneModel();
-		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-		
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 		
@@ -259,7 +269,7 @@ int main( void )
 }
 
 
-void drawBone(Bone &bone, mat4 ProjectionMatrix, mat4 ViewMatrix)
+void drawBone(Bone bone, mat4 ProjectionMatrix, mat4 ViewMatrix)
 {
 	ModelMatrix = bone.getBoneModel();
 	MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
@@ -270,4 +280,34 @@ void drawBone(Bone &bone, mat4 ProjectionMatrix, mat4 ViewMatrix)
 	// Draw the triangle !
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, vertices.size(), 0);
+}
+
+void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix)
+{
+	for (int i = 0; i < skeleton.numBones; i++)
+	{
+		drawBone(bone[i], ProjectionMatrix, ViewMatrix);
+	}
+}
+
+
+void checkKeys()
+{
+	std::cout << "checking keys\n";
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+		view_angles = vec3(0, ViewRotationAngle, 0);
+		camMoved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+		view_angles = vec3(0, -ViewRotationAngle, 0);
+		camMoved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+		view_angles = vec3(-ViewRotationAngle, 0, 0);
+		camMoved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+		view_angles = vec3(ViewRotationAngle, 0, 0);
+		camMoved = true;
+	}
 }
