@@ -28,11 +28,14 @@ public:
 	std::vector<Bone*> children;
 	int numChildren;
 	int boneID;
+	int counter;
 	glm::mat4 boneModel;
 	glm::vec3 localTranslation;
+	glm::vec3 boneScale;
 	glm::mat4 TranslationMatrix;
 	glm::mat4 RotationMatrix;
 	glm::mat4 ScalingMatrix;
+	glm::mat4 initalOri;
 	bool isRoot;
 
 	Bone();
@@ -44,8 +47,7 @@ public:
 	bool hasParent();
 	bool hasChild();
 	glm::mat4 getBoneModel();
-	void updateBone(glm::vec3 translation, float rotation);
-	void updateChild(Bone *bone, glm::vec3 translation, float rotation);
+	void updateBone(glm::vec3 translation, float rotation, glm::vec3 axis);
 
 };
 

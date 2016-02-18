@@ -27,7 +27,6 @@ class Skeleton {
 public:
 	Bone *root;
 	Bone *myBone[NUMBONES];
-	//std::vector<Bone*> allBones;
 	int numBones;
 
 	Skeleton();
@@ -35,8 +34,8 @@ public:
 	~Skeleton();
 
 	void loadBone(Bone *bone);
-	void update(Bone *bone, glm::vec3 translation, float rotation);
-	void updateRoot(glm::vec3 translation, float rotation);
+	void update(Bone *bone, glm::vec3 translation, float rotation, glm::vec3 axis);
+	void updateRoot(glm::vec3 translation, float rotation, glm::vec3 axis);
 };
 
 

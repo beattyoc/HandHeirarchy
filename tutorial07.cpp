@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
+#include <Windows.h>
 // Include GLEW
 #include <GL/glew.h>
 
@@ -35,7 +36,8 @@ std::vector<glm::vec3> vertices;
 
 void drawBone(Bone bone, mat4 ProjectionMatrix, mat4 ViewMatrix);
 void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix);
-void checkKeys();
+void checkKeys(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime);
+void playAnimation(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime);
 
 Bone bone[NUMBONES];
 Skeleton skeleton = Skeleton(NUMBONES);
@@ -53,6 +55,9 @@ glm::vec3 left(-0.1, 0, 0);
 glm::vec3 right(0.1, 0, 0);
 glm::vec3 back(0, 0, -0.1);
 glm::vec3 forth(0, 0, 0.1);
+glm::vec3 axisX(1, 0, 0);
+glm::vec3 axisY(0, 1, 0);
+glm::vec3 axisZ(0, 0, 1);
 
 int main( void )
 {
@@ -268,6 +273,14 @@ int main( void )
 	}
 	bone[14].addChild(&bone[15]);
 
+	/*
+	// Initialize with respect to parent
+	for (int i = 0; i < NUMBONES; i++)
+	{
+		bone[i].updateBone(vec3(0, 0, 0), 0);
+	}
+	*/
+
 	//------------------ Load Skeleton ------------------------
 	//skeleton = Skeleton(NUMBONES);
 
@@ -331,7 +344,7 @@ int main( void )
 		//camMoved = false; // this line disables camera
 		if (camMoved)
 		{
-			ViewMatrix = glm::lookAt(vec3(5, -1, 20), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+			ViewMatrix = glm::lookAt(vec3(5,-30, 45), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 			glm::quat view_rotation(radians(view_angles));
 			ViewOrientation = ViewOrientation * view_rotation;
 			ViewRotationMatrix = toMat4(ViewOrientation);
@@ -342,7 +355,7 @@ int main( void )
 		//------------- Let's Draw! -----------------------
 		drawSkeleton(skeleton, ProjectionMatrix, ViewMatrix);
 
-		checkKeys();
+		checkKeys(ProjectionMatrix, ViewMatrix, deltaTime);
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
@@ -368,21 +381,10 @@ int main( void )
 	return 0;
 }
 
-/*
-void drawBone(Bone bone, mat4 ProjectionMatrix, mat4 ViewMatrix)
-{
-	ModelMatrix = bone.getBoneModel();
-	MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-}
-*/
-
 void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix)
 {
 	for (int i = 0; i < skeleton.numBones; i++)
 	{
-		//drawBone(bone[i], ProjectionMatrix, ViewMatrix);
 		ModelMatrix = skeleton.myBone[i]->getBoneModel();
 		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -391,75 +393,214 @@ void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix)
 	}
 }
 
-void checkKeys()
+
+void playAnimation(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime)
 {
+	float time = glfwGetTime();
+	//wave
+	//bone[0].counter = 0;
+	//while (bone[0].counter < 100)
+	float timeElapsed = 0.0f;
+
+	//while (timeElapsed < 1)
+	{
+		skeleton.update(&bone[0], vec3(0, 0, 0), sin(time*15)/100, axisZ);
+		drawSkeleton(skeleton, ProjectionMatrix, ViewMatrix);
+		//bone[0].counter++;
+		timeElapsed += deltaTime;
+	}
+	/*while (bone[0].counter > -100)
+	{
+		skeleton.update(&bone[0], vec3(0, 0, 0), -rotAngle*deltaTime, axisZ);
+		drawSkeleton(skeleton, ProjectionMatrix, ViewMatrix);
+		bone[0].counter--;
+	}
+	while (bone[0].counter != 0)
+	{
+		skeleton.update(&bone[0], vec3(0, 0, 0), rotAngle*deltaTime, axisZ);
+		drawSkeleton(skeleton, ProjectionMatrix, ViewMatrix);
+		bone[0].counter++;
+	}*/
+
+	//move fingers
+}
+
+void checkKeys(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime)
+{
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+	{
+		playAnimation(ProjectionMatrix, ViewMatrix, deltaTime);
+	}
+
 	//------------ palm / root control --------------------
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
 		//bone[1].updateBone(vec3(0, 0, 0), rotAngle);
-		skeleton.update(&bone[0], back, 0);
+		skeleton.update(&bone[0], back, 0, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
 		//bone[0].updateBone(vec3(0, 0, 0), rotAngle);
-		skeleton.update(&bone[0], forth, 0);
+		skeleton.update(&bone[0], forth, 0, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
 		//bone[0].updateBone(left, 0);
-		skeleton.update(&bone[0], left, 0);
+		skeleton.update(&bone[0], left, 0, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
 		//bone[0].updateBone(right, 0);
-		skeleton.update(&bone[0], right, 0);
+		skeleton.update(&bone[0], right, 0, axisX);
 	}
 
 	//-------------------- finger controls ---------------------
 	//thumb root
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[1], vec3(0, 0, 0), rotAngle);
+		skeleton.update(&bone[1], vec3(0, 0, 0), rotAngle, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[1], vec3(0, 0, 0), -rotAngle);
+		skeleton.update(&bone[1], vec3(0, 0, 0), -rotAngle, axisX);
 	}
 
 	//index root
 	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[4], vec3(0, 0, 0), rotAngle);
+		skeleton.update(&bone[4], vec3(0, 0, 0), rotAngle, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[4], vec3(0, 0, 0), -rotAngle);
+		skeleton.update(&bone[4], vec3(0, 0, 0), -rotAngle, axisX);
 	}
 
 	//middle root
 	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[7], vec3(0, 0, 0), rotAngle);
+		skeleton.update(&bone[7], vec3(0, 0, 0), rotAngle, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[7], vec3(0, 0, 0), -rotAngle);
+		skeleton.update(&bone[7], vec3(0, 0, 0), -rotAngle, axisX);
 	}
 
 	//ring root
 	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[10], vec3(0, 0, 0), rotAngle);
+		skeleton.update(&bone[10], vec3(0, 0, 0), rotAngle, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[10], vec3(0, 0, 0), -rotAngle);
+		skeleton.update(&bone[10], vec3(0, 0, 0), -rotAngle, axisX);
 	}
 
 	//baby root
 	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[13], vec3(0, 0, 0), rotAngle);
+		skeleton.update(&bone[13], vec3(0, 0, 0), rotAngle, axisX);
 	}
 	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 	{
-		skeleton.update(&bone[13], vec3(0, 0, 0), -rotAngle);
+		skeleton.update(&bone[13], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//----------- finger centre bones ------------------------
+	//thumb centre
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[2], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[2], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//index centre
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[5], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[5], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//middle centre
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[8], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[8], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//ring centre
+	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[11], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[11], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//baby centre
+	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[14], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[14], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//----------- finger tip bones ------------------------
+	//thumb tip
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[3], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[3], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//index tip
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[6], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[6], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//middle tip
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[9], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[9], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//ring tip
+	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[12], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[12], vec3(0, 0, 0), -rotAngle, axisX);
+	}
+
+	//baby tip
+	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[15], vec3(0, 0, 0), rotAngle, axisX);
+	}
+	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[15], vec3(0, 0, 0), -rotAngle, axisX);
 	}
 	
 	//---------- Camera Controls -----------------------
