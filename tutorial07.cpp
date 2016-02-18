@@ -344,7 +344,7 @@ int main( void )
 		//camMoved = false; // this line disables camera
 		if (camMoved)
 		{
-			ViewMatrix = glm::lookAt(vec3(5,-30, 45), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+			ViewMatrix = glm::lookAt(vec3(5,-10, 45), glm::vec3(0, 20, 0), glm::vec3(0, 1, 0));
 			glm::quat view_rotation(radians(view_angles));
 			ViewOrientation = ViewOrientation * view_rotation;
 			ViewRotationMatrix = toMat4(ViewOrientation);
@@ -427,6 +427,17 @@ void playAnimation(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime)
 
 void checkKeys(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime)
 {
+	// manually wave
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[0], vec3(0, 0, 0), rotAngle, axisZ);
+	}
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+	{
+		skeleton.update(&bone[0], vec3(0, 0, 0), -rotAngle, axisZ);
+	}
+
+	// auto wave 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
 		playAnimation(ProjectionMatrix, ViewMatrix, deltaTime);
