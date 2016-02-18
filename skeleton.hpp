@@ -21,20 +21,22 @@
 #include <common/objloader.hpp>
 #include <common/bone.hpp>
 
-#define NUMBONES 4
+#define NUMBONES 16
 
 class Skeleton {
 public:
-	Bone root;
-	//int numbones;
-	Bone myBone[NUMBONES];
+	Bone *root;
+	Bone *myBone[NUMBONES];
+	//std::vector<Bone*> allBones;
 	int numBones;
 
 	Skeleton();
 	Skeleton(int nBones);
 	~Skeleton();
 
-	void loadBone(Bone bone);
+	void loadBone(Bone *bone);
+	void update(Bone *bone, glm::vec3 translation, float rotation);
+	void updateRoot(glm::vec3 translation, float rotation);
 };
 
 

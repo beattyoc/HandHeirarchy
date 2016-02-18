@@ -24,20 +24,28 @@ class Bone
 {
 public:
 	Bone *parent;
+	Bone *child;
 	std::vector<Bone*> children;
-	//list<Bone*> children;
-
+	int numChildren;
 	int boneID;
 	glm::mat4 boneModel;
-	glm::vec3 pos;
+	glm::vec3 localTranslation;
+	glm::mat4 TranslationMatrix;
+	glm::mat4 RotationMatrix;
+	glm::mat4 ScalingMatrix;
 	bool isRoot;
 
 	Bone();
-	Bone(int ID, glm::vec3 T, glm::vec3 R, glm::vec3 S);
+	Bone(int ID, glm::vec3 T, glm::vec3 S);
 	~Bone();
 
+	void addParent(Bone *bone);
+	void addChild(Bone *bone);
+	bool hasParent();
+	bool hasChild();
 	glm::mat4 getBoneModel();
-	void update(glm::vec3 translation, glm::vec3 rotation, glm::vec3 scaling);
+	void updateBone(glm::vec3 translation, float rotation);
+	void updateChild(Bone *bone, glm::vec3 translation, float rotation);
 
 };
 
