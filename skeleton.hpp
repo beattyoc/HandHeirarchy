@@ -35,7 +35,8 @@ public:
 
 	void loadBone(Bone *bone);
 	void update(Bone *bone, glm::vec3 translation, float rotation, glm::vec3 axis);
-	void updateRoot(glm::vec3 translation, float rotation, glm::vec3 axis);
+	void updateRoot(glm::vec3 translation, float rotation, glm::vec3 axis );
+	//void tellChild(Bone *bone);
 };
 
 

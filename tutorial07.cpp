@@ -50,7 +50,7 @@ glm::mat4 ViewRotationMatrix;
 bool camMoved = true;
 
 //------ Transformations -------
-float rotAngle = 0.01f;
+float rotAngle = 0.005f;
 glm::vec3 left(-0.1, 0, 0);
 glm::vec3 right(0.1, 0, 0);
 glm::vec3 back(0, 0, -0.1);
@@ -164,10 +164,13 @@ int main( void )
 	float increment = 2.0f;
 	float initialY = 3.0f;
 	float y = initialY;
-	glm::vec3 fingerScale(0.5, 1.0, 0.5);
+	glm::vec3 fingerScale(0.5, 1.0, 1.0);
+	glm::vec3 palmScale(2.0, 2.0, 1.0);
+	//glm::vec3 fingerScale(1.0, 1.0, 1.0);
+	//glm::vec3 palmScale(1.0, 1.0, 1.0);
 
 	//palm//root
-	bone[0] = Bone(0, vec3(0, 0, 0), vec3(2.0, 2.0, 0.5));
+	bone[0] = Bone(0, vec3(0, 0, 0), palmScale);
 
 	//thumb
 	y = 0.0f;
@@ -385,7 +388,7 @@ void drawSkeleton(Skeleton skeleton, mat4 ProjectionMatrix, mat4 ViewMatrix)
 {
 	for (int i = 0; i < skeleton.numBones; i++)
 	{
-		ModelMatrix = skeleton.myBone[i]->getBoneModel();
+		ModelMatrix = skeleton.myBone[i]->boneModel;
 		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -440,7 +443,9 @@ void checkKeys(mat4 ProjectionMatrix, mat4 ViewMatrix, float deltaTime)
 	// auto wave 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
-		playAnimation(ProjectionMatrix, ViewMatrix, deltaTime);
+		float time = glfwGetTime();
+		skeleton.update(&bone[0], vec3(0, 0, 0), sin(time * 15) / 100, axisZ);
+		//playAnimation(ProjectionMatrix, ViewMatrix, deltaTime);
 	}
 
 	//------------ palm / root control --------------------
